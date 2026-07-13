@@ -6,7 +6,7 @@ import {
 import { useAuth } from "../../context/AuthContext";
 import { useTheme } from "../../context/Themecontext";
 
-const API_BASE = "https://vistafluenceapp.onrender.com/";
+const API_BASE = "https://vistafluenceapp.onrender.com";
 const STATUS = {
   danger: '#FF4444',
   warning: '#F97316',
