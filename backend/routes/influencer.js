@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const cloudinary = require('cloudinary').v2;
 const { protect: authMiddleware } = require('../middleware/auth');
-const InfluencerProfile = require('../models/InfluencerProfile');
+const InfluencerProfile = require('../models/Influencerprofile');
 
 router.get('/profile', authMiddleware, async (req, res) => {
   try {
