@@ -13,7 +13,7 @@ import TermsScreen         from '../influencer/Termsscreen';
 import DisclaimerScreen    from '../influencer/Disclaimerscreen';
 import { useTheme } from '../../context/Themecontext';
 
-const API_BASE = process.env.EXPO_PUBLIC_API_URL || 'https://vistafluenceapp.onrender.com/';
+const API_BASE = process.env.EXPO_PUBLIC_API_URL || 'https://vistafluenceapp.onrender.com';
 
 async function fetchProfile(token) {
   const res = await fetch(`${API_BASE}/api/profile`, {
