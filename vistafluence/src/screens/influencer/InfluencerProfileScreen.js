@@ -9,7 +9,7 @@ import { useNavigation } from '@react-navigation/native';
 import * as ImagePicker from 'expo-image-picker';
 import { useAuth } from '../../context/AuthContext';
 
-const API_BASE = process.env.EXPO_PUBLIC_API_URL || 'http://192.168.1.2:5000';
+const API_BASE = process.env.EXPO_PUBLIC_API_URL || 'https://vistafluenceapp.onrender.com/';
 
 async function fetchProfile(token, role) {
   const endpoint = role === 'brand' ? '/api/profile' : '/api/influencer/profile';

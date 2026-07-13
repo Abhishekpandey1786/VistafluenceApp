@@ -9,7 +9,7 @@ import * as DocumentPicker from 'expo-document-picker';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import api from '../../api/index';
 
-const BASE_URL = 'http://192.168.1.2:5000/api';
+const BASE_URL = 'https://vistafluenceapp.onrender.com/api';
 
 const C = {
   bg: '#0f1117', card: '#1a1d23', border: '#2d3140',

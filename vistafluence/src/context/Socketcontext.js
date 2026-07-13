@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useEffect, useRef, useState } from "react";
 import { io } from "socket.io-client";
-const SOCKET_URL = "http://192.168.1.2:5000";
+const SOCKET_URL = "https://vistafluenceapp.onrender.com/";
 
 const SocketContext = createContext(null);
 export const useSocket = () => useContext(SocketContext);

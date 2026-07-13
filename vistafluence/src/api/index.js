@@ -1,6 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-const API_BASE = 'http://192.168.1.2:5000/api';
+const API_BASE = 'https://vistafluenceapp.onrender.com/api';
 
 async function getToken() {
   const token = await AsyncStorage.getItem('vistafluence_token');

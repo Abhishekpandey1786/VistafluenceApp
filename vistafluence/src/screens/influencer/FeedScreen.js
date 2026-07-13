@@ -102,7 +102,7 @@ export default function FeedScreen({ navigation }) {
 
   useEffect(() => {
     fetchLiveFeed();
-    const socket = io("http://192.168.1.2:5000");
+    const socket = io("https://vistafluenceapp.onrender.com/");
 
     socket.on("campaign_liked", ({ campaignId, likedBy }) => {
       setCampaigns((prev) =>

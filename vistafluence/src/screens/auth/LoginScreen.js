@@ -24,7 +24,7 @@ const T = {  black: '#0A0A0A',
   sub: 'rgba(255,255,255,0.6)',
   teal: '#00C9A7',
 };
-const BACKEND_URL = 'http://192.168.1.2:5000/api/auth/login'; 
+const BACKEND_URL = 'https://vistafluenceapp.onrender.com/api/auth/login'; 
 
 export default function LoginScreen({ navigation }) {
   const [email, setEmail] = useState('');

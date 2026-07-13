@@ -7,7 +7,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { useTheme } from '../../context/Themecontext';
 
 const CATEGORIES = ['Fashion', 'Tech', 'Beauty', 'Food', 'Fitness', 'Travel', 'Gaming'];
-const API_BASE = 'http://192.168.1.2:5000/api';
+const API_BASE = 'https://vistafluenceapp.onrender.com/api';
 
 async function postFormData(path, formData) {
   try {

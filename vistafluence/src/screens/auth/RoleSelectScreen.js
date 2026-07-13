@@ -24,7 +24,7 @@ const T = {
 };
 
 // 💻 APNE LAPTOP KA LOCAL IP ADDRESS YAHAN UPDATE KAREIN
-const BACKEND_URL = 'http://192.168.1.2:5000/api/auth/register';
+const BACKEND_URL = 'https://vistafluenceapp.onrender.com/api/auth/register';
 
 export default function RoleSelectScreen({ route, navigation }) {
   const [selected, setSelected] = useState(null);
