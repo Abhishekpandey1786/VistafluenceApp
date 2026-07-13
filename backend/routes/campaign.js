@@ -6,7 +6,7 @@ const User = require('../models/User');
 const { protect, authorize } = require('../middleware/auth');
 const cloudinary = require('cloudinary').v2;
 const multer = require('multer');
-const Profile = require('../models/Profile');
+const Profile = require('../models/profile');
 const { notify, notifyRole } = require('../utils/notify');
 cloudinary.config({
   cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
