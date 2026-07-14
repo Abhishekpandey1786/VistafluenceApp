@@ -19,8 +19,6 @@ const planCodes = {
   Advanced: "ADVANCE",
   Premium: "PREMIUM",
 };
-
-// IMPORTANT: these names must exactly match the `enum` in models/instamojo.js (Order schema)
 const planNames = {
   BASIC: "Basic",
   STANDARD: "Standard",
@@ -196,7 +194,6 @@ router.post("/webhook", async (req, res) => {
       const existingOrder = await Order.findOne({ transactionId: data.payment_id });
 
       if (!existingOrder) {
-        // If we pre-created a PENDING order in /pay, update it; otherwise create fresh.
         const pendingOrder = await Order.findOne({
           orderId: data.payment_request_id,
           paymentStatus: "PENDING",

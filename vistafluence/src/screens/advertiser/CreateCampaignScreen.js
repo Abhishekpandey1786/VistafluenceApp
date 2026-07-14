@@ -4,9 +4,10 @@ import {
   Alert, StatusBar, ActivityIndicator, Platform 
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
+import DateTimePicker from '@react-native-community/datetimepicker';
 import { useTheme } from '../../context/Themecontext';
 
-const CATEGORIES = ['Fashion', 'Tech', 'Beauty', 'Food', 'Fitness', 'Travel', 'Gaming'];
+const CATEGORIES = ['Fashion', 'Tech', 'Beauty', 'Food', 'Fitness', 'Travel', 'Gaming', 'Other'];
 const API_BASE = 'https://vistafluenceapp.onrender.com/api';
 
 async function postFormData(path, formData) {
@@ -26,15 +27,27 @@ async function postFormData(path, formData) {
   }
 }
 
+// Formats a JS Date into DD/MM/YYYY for display + storage
+const formatDate = (date) => {
+  const dd = String(date.getDate()).padStart(2, '0');
+  const mm = String(date.getMonth() + 1).padStart(2, '0');
+  const yyyy = date.getFullYear();
+  return `${dd}/${mm}/${yyyy}`;
+};
+
 export default function CreateCampaignScreen({ navigation }) {
   const { G } = useTheme();
 
   const [form, setForm] = useState({
     title: '', description: '', budget: '', deadline: '', category: '', deliverables: '',
   });
+  const [customCategory, setCustomCategory] = useState('');
   const [image, setImage] = useState(null);
   const [imageUrlInput, setImageUrlInput] = useState('');
   const [loading, setLoading] = useState(false);
+
+  const [deadlineDate, setDeadlineDate] = useState(null);
+  const [showPicker, setShowPicker] = useState(false);
 
   const update = (key, val) => setForm(prev => ({ ...prev, [key]: val }));
 
@@ -59,19 +72,38 @@ export default function CreateCampaignScreen({ navigation }) {
     }
   };
 
+  const handleDateChange = (event, selectedDate) => {
+    // On Android the picker closes itself after a pick; on iOS it stays inline.
+    setShowPicker(Platform.OS === 'ios');
+    if (event.type === 'dismissed') return;
+    if (selectedDate) {
+      setDeadlineDate(selectedDate);
+      update('deadline', formatDate(selectedDate));
+    }
+  };
+
   const handleCreateCampaign = async () => {
     const { title, description, budget, deadline, category, deliverables } = form;
-    if (!title.trim() || !budget.trim() || !category) {
+
+    // If "Other" is selected, use whatever the user typed as the real category
+    const finalCategory = category === 'Other' ? customCategory.trim() : category;
+
+    if (!title.trim() || !budget.trim() || !finalCategory) {
       Alert.alert("VALIDATION ERROR", "Please provide Title, Budget, and Category.");
       return;
     }
+    if (!deadlineDate) {
+      Alert.alert("VALIDATION ERROR", "Please select a deadline date.");
+      return;
+    }
+
     setLoading(true);
     const formData = new FormData();
     formData.append('title', title);
     formData.append('description', description);
     formData.append('budget', Number(budget));
     formData.append('deadline', deadline);
-    formData.append('category', category);
+    formData.append('category', finalCategory);
     const parsedDeliverables = deliverables ? deliverables.split(',').map(item => item.trim()) : [];
     formData.append('deliverables', JSON.stringify(parsedDeliverables));
     if (image) {
@@ -87,6 +119,8 @@ export default function CreateCampaignScreen({ navigation }) {
     if (data.success) {
       Alert.alert("SUCCESS", "Campaign deployed successfully!");
       setForm({ title: '', description: '', budget: '', deadline: '', category: '', deliverables: '' });
+      setCustomCategory('');
+      setDeadlineDate(null);
       setImage(null);
       setImageUrlInput('');
       if (navigation) navigation.goBack();
@@ -161,14 +195,29 @@ export default function CreateCampaignScreen({ navigation }) {
               />
             </View>
             <View style={{ flex: 1 }}>
-              <Text style={{ color: G.textSub, fontSize: 9, fontWeight: '800', marginBottom: 8, letterSpacing: 1 }}>DEADLINE</Text>
-              <TextInput
-                style={{ backgroundColor: G.bgCard, color: G.text, borderBottomWidth: 2, borderBottomColor: G.border, padding: 15, fontSize: 15, fontWeight: '600' }}
-                placeholder="20/05/2026" placeholderTextColor={G.textSub}
-                value={form.deadline} onChangeText={v => update('deadline', v)}
-              />
+              <Text style={{ color: G.textSub, fontSize: 9, fontWeight: '800', marginBottom: 8, letterSpacing: 1 }}>DEADLINE *</Text>
+              <TouchableOpacity onPress={() => setShowPicker(true)} activeOpacity={0.7}>
+                <View pointerEvents="none">
+                  <TextInput
+                    style={{ backgroundColor: G.bgCard, color: G.text, borderBottomWidth: 2, borderBottomColor: G.border, padding: 15, fontSize: 15, fontWeight: '600' }}
+                    placeholder="Select date" placeholderTextColor={G.textSub}
+                    value={form.deadline}
+                    editable={false}
+                  />
+                </View>
+              </TouchableOpacity>
             </View>
           </View>
+
+          {showPicker && (
+            <DateTimePicker
+              value={deadlineDate || new Date()}
+              mode="date"
+              display={Platform.OS === 'ios' ? 'inline' : 'default'}
+              minimumDate={new Date()}
+              onChange={handleDateChange}
+            />
+          )}
         </View>
 
         {/* Category */}
@@ -186,6 +235,19 @@ export default function CreateCampaignScreen({ navigation }) {
               </TouchableOpacity>
             ))}
           </ScrollView>
+
+          {form.category === 'Other' && (
+            <View style={{ marginTop: 15 }}>
+              <Text style={{ color: G.textSub, fontSize: 9, fontWeight: '800', marginBottom: 8, letterSpacing: 1 }}>SPECIFY CATEGORY *</Text>
+              <TextInput
+                style={{ backgroundColor: G.bgCard, color: G.text, borderBottomWidth: 2, borderBottomColor: G.border, padding: 15, fontSize: 15, fontWeight: '600' }}
+                placeholder="e.g. Home Decor"
+                placeholderTextColor={G.textSub}
+                value={customCategory}
+                onChangeText={setCustomCategory}
+              />
+            </View>
+          )}
         </View>
 
         {/* Description & Deliverables */}
