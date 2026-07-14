@@ -261,7 +261,6 @@ router.post('/:id/apply', protect, authorize('influencer'), async (req, res) => 
     let user = await User.findById(req.user._id);
     const now = new Date();
 
-  
     if (
       user.subscription?.lastResetDate &&
       new Date(user.subscription.lastResetDate).getMonth() !== now.getMonth()
@@ -271,22 +270,28 @@ router.post('/:id/apply', protect, authorize('influencer'), async (req, res) => 
       await user.save();
     }
 
-    const limit =
-      user.subscription?.maxApplications ?? getMaxApplications(user.subscription?.plan);
+    const currentPlan = user.subscription?.plan || 'free';
+    const isFreePlan = currentPlan === 'free';
 
-    const used = user.subscription?.applicationsUsed ?? 0;
-
-    if (user.subscription?.status !== 'Active') {
+    if (!isFreePlan && user.subscription?.status !== 'Active') {
       return res.status(403).json({
         success: false,
-        message: 'You need an active subscription to apply to campaigns. Please subscribe to a plan.',
+        message: 'Your subscription is not active. Please renew your plan to continue applying.',
       });
     }
+
+    const limit = isFreePlan
+      ? getMaxApplications(currentPlan)
+      : user.subscription?.maxApplications ?? getMaxApplications(currentPlan);
+
+    const used = user.subscription?.applicationsUsed ?? 0;
 
     if (used >= limit) {
       return res.status(403).json({
         success: false,
-        message: `You've reached your ${user.subscription.plan} plan's limit of ${limit} applications this month. Please upgrade to apply to more.`,
+        message: isFreePlan
+          ? `You've used your ${limit} free application(s) this month. Subscribe to a plan to apply to more.`
+          : `You've reached your ${currentPlan} plan's limit of ${limit} applications this month. Please upgrade to apply to more.`,
       });
     }
 
