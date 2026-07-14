@@ -7,7 +7,7 @@ import { WebView } from 'react-native-webview';
 import { useAuth } from "../../context/AuthContext";
 import { useTheme } from "../../context/Themecontext";
 
-const API_BASE = "https://vistafluenceapp.onrender.com/api";
+const API_BASE = "https://vistafluenceapp.onrender.com";
 
 const STATUS = {
   danger: '#FF4444',
