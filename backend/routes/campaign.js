@@ -8,7 +8,7 @@ const cloudinary = require('cloudinary').v2;
 const multer = require('multer');
 const Profile = require('../models/profile');
 const { notify, notifyRole } = require('../utils/notify');
-const { getMaxApplications } = require('../utils/planLimits');
+const { getMaxApplications, syncSubscriptionState } = require('../utils/planLimits');
 
 cloudinary.config({
   cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
@@ -260,15 +260,7 @@ router.post('/:id/apply', protect, authorize('influencer'), async (req, res) => 
   try {
     let user = await User.findById(req.user._id);
     const now = new Date();
-
-    if (
-      user.subscription?.lastResetDate &&
-      new Date(user.subscription.lastResetDate).getMonth() !== now.getMonth()
-    ) {
-      user.subscription.applicationsUsed = 0;
-      user.subscription.lastResetDate = now;
-      await user.save();
-    }
+    await syncSubscriptionState(user, now);
 
     const currentPlan = user.subscription?.plan || 'free';
     const isFreePlan = currentPlan === 'free';
@@ -279,7 +271,6 @@ router.post('/:id/apply', protect, authorize('influencer'), async (req, res) => 
         message: 'Your subscription is not active. Please renew your plan to continue applying.',
       });
     }
-
     const limit = isFreePlan
       ? getMaxApplications(currentPlan)
       : user.subscription?.maxApplications ?? getMaxApplications(currentPlan);
