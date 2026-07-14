@@ -8,6 +8,8 @@ const cloudinary = require('cloudinary').v2;
 const multer = require('multer');
 const Profile = require('../models/profile');
 const { notify, notifyRole } = require('../utils/notify');
+const { getMaxApplications } = require('../utils/planLimits');
+
 cloudinary.config({
   cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
   api_key: process.env.CLOUDINARY_API_KEY,
@@ -259,15 +261,35 @@ router.post('/:id/apply', protect, authorize('influencer'), async (req, res) => 
     let user = await User.findById(req.user._id);
     const now = new Date();
 
-    if (user.subscription.lastResetDate && new Date(user.subscription.lastResetDate).getMonth() !== now.getMonth()) {
+  
+    if (
+      user.subscription?.lastResetDate &&
+      new Date(user.subscription.lastResetDate).getMonth() !== now.getMonth()
+    ) {
       user.subscription.applicationsUsed = 0;
       user.subscription.lastResetDate = now;
       await user.save();
     }
-    const limit = user.subscription.plan === 'free' ? 1 : 100;
-    if (user.subscription.applicationsUsed >= limit) {
-      return res.status(403).json({ success: false, message: 'Free plan limit reached (Max 1). Please upgrade.' });
+
+    const limit =
+      user.subscription?.maxApplications ?? getMaxApplications(user.subscription?.plan);
+
+    const used = user.subscription?.applicationsUsed ?? 0;
+
+    if (user.subscription?.status !== 'Active') {
+      return res.status(403).json({
+        success: false,
+        message: 'You need an active subscription to apply to campaigns. Please subscribe to a plan.',
+      });
     }
+
+    if (used >= limit) {
+      return res.status(403).json({
+        success: false,
+        message: `You've reached your ${user.subscription.plan} plan's limit of ${limit} applications this month. Please upgrade to apply to more.`,
+      });
+    }
+
     const campaign = await Campaign.findById(req.params.id);
     if (!campaign) return res.status(404).json({ success: false, message: 'Campaign not found' });
 

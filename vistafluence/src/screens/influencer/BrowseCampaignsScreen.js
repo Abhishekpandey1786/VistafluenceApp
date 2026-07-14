@@ -1,22 +1,24 @@
 import React, { useState, useEffect } from 'react';
 import {
   View, Text, ScrollView, TextInput,
-  TouchableOpacity, StatusBar, Alert, Linking, ActivityIndicator, RefreshControl
+  TouchableOpacity, StatusBar, Alert, ActivityIndicator, RefreshControl, Modal
 } from 'react-native';
+import { WebView } from 'react-native-webview';
 import { useAuth } from "../../context/AuthContext";
 import { useTheme } from "../../context/Themecontext";
 
-const API_BASE = "https://vistafluenceapp.onrender.com";
+const API_BASE = "https://vistafluenceapp.onrender.com/api";
+
 const STATUS = {
   danger: '#FF4444',
   warning: '#F97316',
 };
 
 const PLANS = {
-  Basic:    { code: 'BASIC',    price: 99,  oldPrice: 125,  discount: '20% OFF', campaigns: 6,          perks: ['Higher Visibility', 'Apply For 6 Campaigns Monthly'] },
-  Standard: { code: 'STANDARD', price: 199, oldPrice: 599,  discount: '30% OFF', campaigns: 15,         perks: ['Higher Visibility', 'Apply For 15 Campaigns Monthly', 'Direct Message'] },
-  Advanced: { code: 'ADVANCE',  price: 499, oldPrice: 1000, discount: '40% OFF', campaigns: 40,         perks: ['Higher Visibility', 'Apply For 40 Campaigns Monthly', 'Direct Message', 'Academy Course', 'Profile Recommendation'] },
-  Premium:  { code: 'PREMIUM',  price: 999, oldPrice: 1999, discount: '50% OFF', campaigns: 'Unlimited', perks: ['Higher Visibility', 'Unlimited Campaigns', 'Direct Message', 'Academy Access', 'Brand Recommendation', '3 Video Editing Credits'] },
+  Basic:    { code: 'BASIC',    price: 99,   oldPrice: 125,  discount: '20% OFF', campaigns: 6,          perks: ['Higher Visibility', 'Apply For 6 Campaigns Monthly'] },
+  Standard: { code: 'STANDARD', price: 199,  oldPrice: 599,  discount: '30% OFF', campaigns: 15,         perks: ['Higher Visibility', 'Apply For 15 Campaigns Monthly', 'Direct Message'] },
+  Advanced: { code: 'ADVANCE',  price: 499,  oldPrice: 1000, discount: '40% OFF', campaigns: 40,         perks: ['Higher Visibility', 'Apply For 40 Campaigns Monthly', 'Direct Message', 'Academy Course', 'Profile Recommendation'] },
+  Premium:  { code: 'PREMIUM',  price: 899,  oldPrice: 1800, discount: '50% OFF', campaigns: 'Unlimited', perks: ['Higher Visibility', 'Unlimited Campaigns', 'Direct Message', 'Academy Access', 'Brand Recommendation', '3 Video Editing Credits'] },
 };
 
 export default function SubscriptionCheckoutScreen({ navigation, route }) {
@@ -31,9 +33,13 @@ export default function SubscriptionCheckoutScreen({ navigation, route }) {
   const [orders, setOrders]               = useState([]);
   const [ordersLoading, setOrdersLoading] = useState(true);
   const [refreshing, setRefreshing]       = useState(false);
-  const [view, setView]                   = useState('checkout'); 
+  const [view, setView]                   = useState('checkout');
   const [subscription, setSubscription]   = useState(null);
   const [failMessage, setFailMessage]     = useState('');
+
+ 
+  const [checkoutUrl, setCheckoutUrl] = useState(null);
+  const [showWebView, setShowWebView] = useState(false);
 
   const plan  = PLANS[selectedPlan];
   const gst   = parseFloat((plan.price * 0.18).toFixed(2));
@@ -55,23 +61,6 @@ export default function SubscriptionCheckoutScreen({ navigation, route }) {
 
   useEffect(() => {
     fetchOrders();
-    const handleDeepLink = ({ url }) => {
-      if (!url) return;
-      try {
-        const parsed             = new URL(url);
-        const payment_id         = parsed.searchParams.get('payment_id');
-        const payment_request_id = parsed.searchParams.get('payment_request_id');
-        const userId             = parsed.searchParams.get('userId');
-        const planCode           = parsed.searchParams.get('plan');
-        if (payment_id && payment_request_id && userId && planCode) {
-          verifyPayment(payment_id, payment_request_id, userId, planCode);
-        }
-      } catch (e) {
-        console.error('Deep link parse error:', e);
-      }
-    };
-    const linkSub = Linking.addEventListener('url', handleDeepLink);
-    return () => linkSub.remove();
   }, []);
 
   const fetchOrders = async () => {
@@ -108,7 +97,9 @@ export default function SubscriptionCheckoutScreen({ navigation, route }) {
       });
       const data = await response.json();
       if (data.success && data.url) {
-        await Linking.openURL(data.url);
+     
+        setCheckoutUrl(data.url);
+        setShowWebView(true);
       } else {
         Alert.alert('Payment Error', data.error || 'Something went wrong');
       }
@@ -116,6 +107,34 @@ export default function SubscriptionCheckoutScreen({ navigation, route }) {
       Alert.alert('Error', 'Payment request failed. Check your connection.');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleWebViewNavigationChange = (navState) => {
+    if (!navState?.url) return;
+    if (!navState.url.includes('/payment-status')) return;
+
+    try {
+      const parsed             = new URL(navState.url);
+      const payment_id         = parsed.searchParams.get('payment_id');
+      const payment_request_id = parsed.searchParams.get('payment_request_id');
+      const userId             = parsed.searchParams.get('userId');
+      const planCode           = parsed.searchParams.get('plan');
+
+      setShowWebView(false);
+
+      if (payment_id && payment_request_id && userId && planCode) {
+        verifyPayment(payment_id, payment_request_id, userId, planCode);
+      } else {
+       
+        setFailMessage('Payment was not completed.');
+        setView('failed');
+      }
+    } catch (e) {
+      console.error('Redirect URL parse error:', e);
+      setShowWebView(false);
+      setFailMessage('Could not read payment result.');
+      setView('failed');
     }
   };
 
@@ -141,6 +160,32 @@ export default function SubscriptionCheckoutScreen({ navigation, route }) {
       setView('failed');
     }
   };
+
+  // ---- WebView checkout modal ----
+  const renderCheckoutWebView = () => (
+    <Modal visible={showWebView} animationType="slide" onRequestClose={() => setShowWebView(false)}>
+      <View style={{ flex: 1, backgroundColor: G.bg }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', paddingTop: 50, paddingHorizontal: 16, paddingBottom: 10 }}>
+          <TouchableOpacity onPress={() => setShowWebView(false)} style={{ padding: 8 }}>
+            <Text style={{ color: G.text, fontSize: 16, fontWeight: '700' }}>✕ Close</Text>
+          </TouchableOpacity>
+        </View>
+        {checkoutUrl && (
+          <WebView
+            source={{ uri: checkoutUrl }}
+            onNavigationStateChange={handleWebViewNavigationChange}
+            startInLoadingState
+            renderLoading={() => (
+              <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+                <ActivityIndicator size="large" color={G.gold} />
+              </View>
+            )}
+          />
+        )}
+      </View>
+    </Modal>
+  );
+
   if (view === 'verifying') {
     return (
       <View style={{ flex: 1, backgroundColor: G.bg, justifyContent: 'center', alignItems: 'center' }}>
@@ -229,6 +274,7 @@ export default function SubscriptionCheckoutScreen({ navigation, route }) {
   return (
     <View style={{ flex: 1, backgroundColor: G.bg }}>
       <StatusBar barStyle="light-content" />
+      {renderCheckoutWebView()}
       <View style={{ marginTop: 60, marginBottom: 20, paddingHorizontal: 20, flexDirection: 'row', alignItems: 'center' }}>
         <TouchableOpacity
           style={{ width: 36, height: 36, backgroundColor: G.bgCard, justifyContent: 'center', alignItems: 'center', marginRight: 12, borderRadius: 8, borderWidth: 1, borderColor: G.borderAlt }}
@@ -237,7 +283,6 @@ export default function SubscriptionCheckoutScreen({ navigation, route }) {
           <Text style={{ color: G.text, fontSize: 18 }}>←</Text>
         </TouchableOpacity>
         <View>
-
           <Text style={{ fontSize: 24, fontWeight: '900', color: G.text, marginTop: 4 }}>
             MANAGE <Text style={{ color: G.gold }}>PLAN</Text>
           </Text>
@@ -353,12 +398,12 @@ export default function SubscriptionCheckoutScreen({ navigation, route }) {
                     backgroundColor: order.paymentStatus === 'SUCCESS' ? 'rgba(45,212,191,0.12)' : 'rgba(255,68,68,0.12)',
                   }}>
                     <Text style={{ fontSize: 11, fontWeight: '700', color: order.paymentStatus === 'SUCCESS' ? G.teal : STATUS.danger }}>
-                      {order.paymentStatus === 'SUCCESS' ? '✓ Paid' : '✗ Failed'}
+                      {order.paymentStatus === 'SUCCESS' ? '✓ Paid' : order.paymentStatus === 'PENDING' ? '… Pending' : '✗ Failed'}
                     </Text>
                   </View>
                 </View>
               </View>
-              <Text style={{ color: G.textSub, fontSize: 10, marginTop: 8, letterSpacing: 0.5 }}>TXN: {order.transactionId}</Text>
+              <Text style={{ color: G.textSub, fontSize: 10, marginTop: 8, letterSpacing: 0.5 }}>TXN: {order.transactionId || '—'}</Text>
             </View>
           ))
         )}

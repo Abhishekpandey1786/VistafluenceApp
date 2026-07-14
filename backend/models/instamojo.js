@@ -13,14 +13,14 @@ const orderSchema = new mongoose.Schema(
 
     plan: {
       type: String,
-      enum: ["Basic", "Standard", "Advance", "Premium"],
+      enum: ["Basic", "Standard", "Advanced", "Premium"],
       required: true,
     },
     amount: { type: Number, required: true },
 
-    orderId: { type: String, unique: true },
-    phonepeOrderId: { type: String },      
-    transactionId: { type: String },   
+    orderId: { type: String, unique: true, sparse: true },
+    phonepeOrderId: { type: String },
+    transactionId: { type: String },
 
     paymentStatus: {
       type: String,
