@@ -19,12 +19,23 @@ const planCodes = {
   Advanced: "ADVANCE",
   Premium: "PREMIUM",
 };
+
+// IMPORTANT: these names must exactly match the `enum` in models/instamojo.js (Order schema)
 const planNames = {
   BASIC: "Basic",
   STANDARD: "Standard",
   ADVANCE: "Advanced",
   PREMIUM: "Premium",
 };
+
+// getMaxApplications now comes from utils/planLimits.js — this is the same
+// helper routes/campaign.js uses when checking whether a user can still
+// apply to campaigns, so the limit a user pays for always matches the
+// limit that gets enforced.
+
+// Single source of truth for writing a subscription onto a user.
+// Both the webhook and the verify-status routes call this so the
+// User document always has the same shape (expiryDate, not endDate).
 const activateSubscription = async (userId, planName) => {
   await User.findByIdAndUpdate(userId, {
     $set: {
@@ -120,8 +131,9 @@ router.post("/pay", async (req, res) => {
           response: resp,
         });
       }
-
       try {
+        await Order.deleteMany({ userId, paymentStatus: "PENDING" });
+
         await Order.create({
           userId,
           userEmail: email.trim().toLowerCase(),
@@ -133,7 +145,6 @@ router.post("/pay", async (req, res) => {
           paymentStatus: "PENDING",
         });
       } catch (e) {
-       
         console.error("⚠️ Could not pre-create pending order:", e.message);
       }
 
@@ -157,8 +168,6 @@ router.post("/webhook", async (req, res) => {
     const data = { ...req.body };
     const providedMac = data.mac;
     delete data.mac;
-
-    // MAC Verification logic
     const payload = Object.keys(data).sort().map((key) => data[key]).join("|");
 
     const generatedMac = crypto
@@ -191,7 +200,6 @@ router.post("/webhook", async (req, res) => {
       const existingOrder = await Order.findOne({ transactionId: data.payment_id });
 
       if (!existingOrder) {
-       
         const pendingOrder = await Order.findOne({
           orderId: data.payment_request_id,
           paymentStatus: "PENDING",
@@ -278,7 +286,6 @@ router.post("/verify-status", async (req, res) => {
           pendingOrder.amount = result.payment_request.amount;
           await pendingOrder.save();
         } else {
-       
           const buyerUser = await User.findById(userId).lean();
           await Order.create({
             userId,
@@ -292,7 +299,6 @@ router.post("/verify-status", async (req, res) => {
           });
         }
       }
-
       await activateSubscription(userId, planName);
 
       const updatedUser = await User.findById(userId).lean();
