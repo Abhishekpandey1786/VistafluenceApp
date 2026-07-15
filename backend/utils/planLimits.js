@@ -22,7 +22,7 @@ async function syncSubscriptionState(user, now = new Date()) {
   if (sub.status === 'Active' && isSubscriptionExpired(sub, now)) {
     sub.plan = 'free';
     sub.status = 'None';
-    sub.maxApplications = 0; // free-tier limit is derived from getMaxApplications('free') at check time
+    sub.maxApplications = 0; 
     sub.applicationsUsed = 0;
     sub.lastResetDate = now;
     await user.save();

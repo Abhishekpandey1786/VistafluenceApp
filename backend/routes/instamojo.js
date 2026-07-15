@@ -98,8 +98,6 @@ router.post("/pay", async (req, res) => {
 
     Instamojo.createPayment(data, async (error, response) => {
       console.log("INSTAMOJO ERROR =>", error);
-      console.log("INSTAMOJO RESPONSE =>", response);
-
       if (error) {
         return res.status(400).json({
           success: false,
@@ -111,9 +109,6 @@ router.post("/pay", async (req, res) => {
       if (typeof response === "string") {
         resp = JSON.parse(response);
       }
-
-      console.log("PARSED RESPONSE =>", resp);
-
       if (!resp.success) {
         return res.status(400).json({
           success: false,
