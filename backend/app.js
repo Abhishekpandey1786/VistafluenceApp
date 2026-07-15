@@ -4,19 +4,16 @@ const http = require('http');
 const cors = require('cors');
 const connectDB = require('./config/db');
 const { initSocket } = require('./utils/Socket');
-
+const { startSubscriptionExpiryCron } = require('./utils/subscriptionCron');
 const app = express();
 const server = http.createServer(app);
 
-// ✅ Socket.io ab centralized util se init hota hai — routes/messaging.js
-// isi instance ko use karke realtime push karega
 const io = initSocket(server);
-
-// ✅ IMPORTANT: purane routes (jaise campaign like/comment) jo
-// req.app.get('io') use karte hain, unke liye backward compatibility
 app.set('io', io);
 
 connectDB();
+
+startSubscriptionExpiryCron();
 
 app.use(cors({ origin: '*' }));
 app.use(express.json({ limit: '50mb' }));

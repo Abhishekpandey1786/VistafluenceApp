@@ -119,7 +119,7 @@ export default function CampaignDetailScreen({ route, navigation }) {
             {[
               { label: 'REWARD',     val: details.budget },
               { label: 'APPLICANTS', val: campaign?.applicantsCount || 0 },
-              { label: 'DEADLINE',   val: details.deadline.split('/')[0] || details.deadline },
+              { label: 'CREATIVITY',   val: details.deadline },
             ].map((s, i) => (
               <View key={i} style={[{ flex: 1, alignItems: 'center' }, i > 0 && { borderLeftWidth: 1, borderLeftColor: G.borderAlt }]}>
                 <Text style={{ color: G.textSub, fontSize: 9, fontWeight: '800', marginBottom: 5, letterSpacing: 0.5 }}>{s.label}</Text>

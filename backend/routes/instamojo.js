@@ -25,8 +25,6 @@ const planNames = {
   ADVANCE: "Advanced",
   PREMIUM: "Premium",
 };
-
-
 const activateSubscription = async (userId, planName) => {
   await User.findByIdAndUpdate(userId, {
     $set: {
@@ -95,7 +93,6 @@ router.post("/pay", async (req, res) => {
     data.setRedirectUrl(
       `${fUrl}/payment-status?userId=${userId}&plan=${planCode}`
     );
-
     data.webhook = `${bUrl}/api/instamojo/webhook`;
 
     Instamojo.createPayment(data, async (error, response) => {
@@ -136,7 +133,7 @@ router.post("/pay", async (req, res) => {
           paymentStatus: "PENDING",
         });
       } catch (e) {
-        
+       
         console.error("⚠️ Could not pre-create pending order:", e.message);
       }
 
@@ -161,7 +158,7 @@ router.post("/webhook", async (req, res) => {
     const providedMac = data.mac;
     delete data.mac;
 
-   
+    // MAC Verification logic
     const payload = Object.keys(data).sort().map((key) => data[key]).join("|");
 
     const generatedMac = crypto
@@ -194,6 +191,7 @@ router.post("/webhook", async (req, res) => {
       const existingOrder = await Order.findOne({ transactionId: data.payment_id });
 
       if (!existingOrder) {
+       
         const pendingOrder = await Order.findOne({
           orderId: data.payment_request_id,
           paymentStatus: "PENDING",
@@ -280,6 +278,8 @@ router.post("/verify-status", async (req, res) => {
           pendingOrder.amount = result.payment_request.amount;
           await pendingOrder.save();
         } else {
+       
+          const buyerUser = await User.findById(userId).lean();
           await Order.create({
             userId,
             plan: planName,
@@ -287,6 +287,8 @@ router.post("/verify-status", async (req, res) => {
             transactionId: payment_id,
             orderId: payment_request_id,
             paymentStatus: "SUCCESS",
+            userEmail: buyerUser?.email || "unknown@vistafluence.com",
+            userName: buyerUser?.name || "Customer",
           });
         }
       }
