@@ -33,5 +33,8 @@ app.use('/api/academy', require('./routes/Academy'));
 
 app.get('/', (req, res) => res.json({ message: '🌟 Vista Fluence API Running' }));
 
+app.get('/payment-status', (req, res) => {
+  res.send('<html><body><p>Processing your payment... you can close this window.</p></body></html>');
+});
 const PORT = process.env.PORT || 5000;
 server.listen(PORT, () => console.log(`🚀 Vistafluence Core Server running on port ${PORT}`));

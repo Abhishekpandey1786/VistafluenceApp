@@ -19,8 +19,6 @@ const planCodes = {
   Advanced: "ADVANCE",
   Premium: "PREMIUM",
 };
-
-// IMPORTANT: these names must exactly match the `enum` in models/instamojo.js (Order schema)
 const planNames = {
   BASIC: "Basic",
   STANDARD: "Standard",
@@ -28,14 +26,6 @@ const planNames = {
   PREMIUM: "Premium",
 };
 
-// getMaxApplications now comes from utils/planLimits.js — this is the same
-// helper routes/campaign.js uses when checking whether a user can still
-// apply to campaigns, so the limit a user pays for always matches the
-// limit that gets enforced.
-
-// Single source of truth for writing a subscription onto a user.
-// Both the webhook and the verify-status routes call this so the
-// User document always has the same shape (expiryDate, not endDate).
 const activateSubscription = async (userId, planName) => {
   await User.findByIdAndUpdate(userId, {
     $set: {
@@ -131,23 +121,6 @@ router.post("/pay", async (req, res) => {
           response: resp,
         });
       }
-      try {
-        await Order.deleteMany({ userId, paymentStatus: "PENDING" });
-
-        await Order.create({
-          userId,
-          userEmail: email.trim().toLowerCase(),
-          userName: userName || "Customer",
-          userPhoneNo: cleanPhone || "",
-          plan: planNames[planCode],
-          amount: plan.price,
-          orderId: resp.payment_request.id,
-          paymentStatus: "PENDING",
-        });
-      } catch (e) {
-        console.error("⚠️ Could not pre-create pending order:", e.message);
-      }
-
       return res.status(200).json({
         success: true,
         url: resp.payment_request.longurl,
@@ -168,6 +141,8 @@ router.post("/webhook", async (req, res) => {
     const data = { ...req.body };
     const providedMac = data.mac;
     delete data.mac;
+
+   
     const payload = Object.keys(data).sort().map((key) => data[key]).join("|");
 
     const generatedMac = crypto
@@ -200,28 +175,17 @@ router.post("/webhook", async (req, res) => {
       const existingOrder = await Order.findOne({ transactionId: data.payment_id });
 
       if (!existingOrder) {
-        const pendingOrder = await Order.findOne({
+      
+        await Order.create({
+          userId,
+          plan: planName,
+          amount: data.amount,
+          transactionId: data.payment_id,
           orderId: data.payment_request_id,
-          paymentStatus: "PENDING",
+          paymentStatus: "SUCCESS",
+          userEmail: data.buyer,
+          userName: data.buyer_name,
         });
-
-        if (pendingOrder) {
-          pendingOrder.transactionId = data.payment_id;
-          pendingOrder.paymentStatus = "SUCCESS";
-          pendingOrder.amount = data.amount;
-          await pendingOrder.save();
-        } else {
-          await Order.create({
-            userId,
-            plan: planName,
-            amount: data.amount,
-            transactionId: data.payment_id,
-            orderId: data.payment_request_id,
-            paymentStatus: "SUCCESS",
-            userEmail: data.buyer,
-            userName: data.buyer_name,
-          });
-        }
 
         await activateSubscription(userId, planName);
 
@@ -275,29 +239,18 @@ router.post("/verify-status", async (req, res) => {
       const existingOrder = await Order.findOne({ transactionId: payment_id });
 
       if (!existingOrder) {
-        const pendingOrder = await Order.findOne({
+       
+        const buyerUser = await User.findById(userId).lean();
+        await Order.create({
+          userId,
+          plan: planName,
+          amount: result.payment_request.amount,
+          transactionId: payment_id,
           orderId: payment_request_id,
-          paymentStatus: "PENDING",
+          paymentStatus: "SUCCESS",
+          userEmail: buyerUser?.email || "unknown@vistafluence.com",
+          userName: buyerUser?.name || "Customer",
         });
-
-        if (pendingOrder) {
-          pendingOrder.transactionId = payment_id;
-          pendingOrder.paymentStatus = "SUCCESS";
-          pendingOrder.amount = result.payment_request.amount;
-          await pendingOrder.save();
-        } else {
-          const buyerUser = await User.findById(userId).lean();
-          await Order.create({
-            userId,
-            plan: planName,
-            amount: result.payment_request.amount,
-            transactionId: payment_id,
-            orderId: payment_request_id,
-            paymentStatus: "SUCCESS",
-            userEmail: buyerUser?.email || "unknown@vistafluence.com",
-            userName: buyerUser?.name || "Customer",
-          });
-        }
       }
       await activateSubscription(userId, planName);
 
