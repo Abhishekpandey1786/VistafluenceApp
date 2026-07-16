@@ -246,6 +246,13 @@ export default function FeedScreen({ navigation }) {
                 : c.budget;
             const hasUserLiked = c.likes?.includes(user?._id);
 
+            // ✅ NAYA: application status label decide karo
+            const getApplyStatusLabel = () => {
+              if (c.applicationStatus === "accepted") return "✓ Accepted";
+              if (c.applicationStatus === "rejected") return "✕ Rejected";
+              return "⏳ Applied";
+            };
+
             return (
               <View key={c._id || c.id} style={s.post}>
                 <TouchableOpacity
@@ -304,14 +311,24 @@ export default function FeedScreen({ navigation }) {
                       </Text>
                     </View>
                   </View>
-                  <TouchableOpacity
-                    style={s.applyNowBtn}
-                    onPress={() =>
-                      navigation.navigate("CampaignDetail", { campaign: c })
-                    }
-                  >
-                    <Text style={s.applyBtnText}>Apply Now</Text>
-                  </TouchableOpacity>
+
+                  {/* ✅ UPDATED: hasApplied ke hisaab se button change */}
+                  {c.hasApplied ? (
+                    <View style={[s.applyNowBtn, s.appliedBtn]}>
+                      <Text style={s.appliedBtnText}>
+                        {getApplyStatusLabel()}
+                      </Text>
+                    </View>
+                  ) : (
+                    <TouchableOpacity
+                      style={s.applyNowBtn}
+                      onPress={() =>
+                        navigation.navigate("CampaignDetail", { campaign: c })
+                      }
+                    >
+                      <Text style={s.applyBtnText}>Apply Now</Text>
+                    </TouchableOpacity>
+                  )}
                 </View>
                 <View style={s.postContent}>
                   <View style={s.budgetRow}>
@@ -425,14 +442,13 @@ const makeStyles = (G) =>
       alignItems: "center",
       paddingHorizontal: 14,
       height: 45,
-      // Add these for better visibility
       borderWidth: 1,
       borderColor: G.border,
     },
     searchInput: {
       flex: 1,
-      color: G.text, // User jo type karega uska color
-      fontSize: 14, // Thoda sa bada
+      color: G.text,
+      fontSize: 14,
       fontWeight: "500",
     },
     post: {
@@ -479,6 +495,15 @@ const makeStyles = (G) =>
       borderRadius: 10,
     },
     applyBtnText: { color: G.black, fontWeight: "800", fontSize: 13 },
+
+    // ✅ NAYE STYLES - Applied state ke liye
+    appliedBtn: {
+      backgroundColor: G.bgInput,
+      borderWidth: 1,
+      borderColor: G.gold,
+    },
+    appliedBtnText: { color: G.gold, fontWeight: "800", fontSize: 13 },
+
     postContent: { paddingHorizontal: 14 },
     budgetRow: {
       flexDirection: "row",

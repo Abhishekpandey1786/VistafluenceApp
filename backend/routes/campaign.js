@@ -56,6 +56,21 @@ router.get('/feed', protect, async (req, res) => {
       .limit(limit)
       .lean();
 
+ // ✅ NAYA: is influencer ke saare applications ek saath fetch karo
+    const campaignIds = campaigns.map(c => c._id);
+    const appliedMap = {}; // campaignId -> status
+
+    if (req.user.role === 'influencer') {
+      const myApplications = await Application.find({
+        campaign: { $in: campaignIds },
+        influencer: req.user._id
+      }).select('campaign status');
+
+      myApplications.forEach(a => {
+        appliedMap[a.campaign.toString()] = a.status;
+      });
+    }
+
     campaigns = await Promise.all(
       campaigns.map(async (campaign) => {
 
@@ -80,7 +95,10 @@ router.get('/feed', protect, async (req, res) => {
 
             verified:
               profile?.verified || false
-          }
+          },
+           // ✅ NAYA
+          hasApplied: !!appliedMap[campaignIdStr],
+          applicationStatus: appliedMap[campaignIdStr] || null
         };
       })
     );
@@ -218,11 +236,34 @@ router.post('/', protect, authorize('brand'), upload.single('coverArt'), async (
   }
 });
 
+// ✅ UPDATED: /:id route - ab hasApplied field bhejta hai
 router.get('/:id', protect, async (req, res) => {
   try {
     const campaign = await Campaign.findById(req.params.id).populate('brand', 'name companyName avatar logo');
     if (!campaign) return res.status(404).json({ success: false, message: 'Campaign not found' });
-    res.json({ success: true, campaign });
+
+    // ✅ NAYA: check karo influencer ne apply kiya hai ya nahi
+    let hasApplied = false;
+    let applicationStatus = null;
+
+    if (req.user.role === 'influencer') {
+      const myApplication = await Application.findOne({
+        campaign: campaign._id,
+        influencer: req.user._id
+      }).select('status');
+
+      if (myApplication) {
+        hasApplied = true;
+        applicationStatus = myApplication.status;
+      }
+    }
+
+    res.json({
+      success: true,
+      campaign,
+      hasApplied,        // ✅ NAYA
+      applicationStatus  // ✅ NAYA
+    });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   }
