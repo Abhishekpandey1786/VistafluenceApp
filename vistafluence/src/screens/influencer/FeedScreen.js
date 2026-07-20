@@ -12,6 +12,7 @@ import {
   Dimensions,
   ActivityIndicator,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context"; // NEW IMPORT
 import { useAuth } from "../../context/AuthContext";
 import { api } from "../../api/index";
 import { useTheme } from "../../context/Themecontext";
@@ -37,9 +38,11 @@ const FALLBACK_CAMPAIGNS = [
   },
 ];
 
+// UPDATED: BottomNav now uses safe area insets to avoid overlapping with phone's nav buttons
 function BottomNav({ active, navigation }) {
   const { G } = useTheme();
-  const s = makeStyles(G);
+  const insets = useSafeAreaInsets(); // NEW: get device safe area (gesture bar / home indicator height)
+  const s = makeStyles(G, insets);   // NEW: pass insets to styles
   const tabs = [
     { key: "HomeTab", icon: "🏠", label: "Feed" },
     { key: "CampaignsTab", icon: "📢", label: "Subscription" },
@@ -71,7 +74,8 @@ export function BottomNavBar({ active, navigation }) {
 
 export default function FeedScreen({ navigation }) {
   const { G } = useTheme();
-  const s = makeStyles(G);
+  const insets = useSafeAreaInsets(); // NEW: for header top spacing too
+  const s = makeStyles(G, insets);   // NEW
   const { user } = useAuth();
   const [search, setSearch] = useState("");
   const [refreshing, setRefreshing] = useState(false);
@@ -371,7 +375,8 @@ export default function FeedScreen({ navigation }) {
             );
           })
         )}
-        <View style={{ height: 100 }} />
+        {/* UPDATED: spacer height now accounts for bottom nav + safe area, prevents last post being hidden behind nav */}
+        <View style={{ height: 100 + insets.bottom }} />
       </ScrollView>
 
       <BottomNavBar active="HomeTab" navigation={navigation} />
@@ -379,7 +384,8 @@ export default function FeedScreen({ navigation }) {
   );
 }
 
-const makeStyles = (G) =>
+// UPDATED: makeStyles now accepts insets as second param
+const makeStyles = (G, insets = { top: 0, bottom: 0 }) =>
   StyleSheet.create({
     container: {
       flex: 1,
@@ -390,7 +396,8 @@ const makeStyles = (G) =>
       justifyContent: "space-between",
       alignItems: "center",
       paddingHorizontal: 16,
-      paddingTop: 50,
+      // UPDATED: was hardcoded paddingTop: 50 — now respects notch/status bar height dynamically
+      paddingTop: insets.top + 10,
       paddingBottom: 15,
     },
     logo: {
@@ -425,14 +432,13 @@ const makeStyles = (G) =>
       alignItems: "center",
       paddingHorizontal: 14,
       height: 45,
-      // Add these for better visibility
       borderWidth: 1,
       borderColor: G.border,
     },
     searchInput: {
       flex: 1,
-      color: G.text, // User jo type karega uska color
-      fontSize: 14, // Thoda sa bada
+      color: G.text,
+      fontSize: 14,
       fontWeight: "500",
     },
     post: {
@@ -553,7 +559,7 @@ const makeStyles = (G) =>
     tabBar: {
       flexDirection: "row",
       backgroundColor: G.black,
-      paddingBottom: 25,
+      paddingBottom: 12 + insets.bottom,
       paddingTop: 12,
       borderTopWidth: 0.5,
       borderTopColor: G.border,

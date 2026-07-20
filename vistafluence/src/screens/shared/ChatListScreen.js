@@ -100,7 +100,18 @@ export default function ChatListScreen({ navigation }) {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.title}>Messages</Text>
+        <View style={styles.titleRow}>
+          {navigation.canGoBack() && (
+            <TouchableOpacity
+              onPress={() => navigation.goBack()}
+              style={styles.backBtn}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            >
+              <Text style={styles.backIcon}>←</Text>
+            </TouchableOpacity>
+          )}
+          <Text style={styles.title}>Messages</Text>
+        </View>
 
         <View style={styles.searchBox}>
           <Text style={styles.searchIcon}>🔍</Text>
@@ -275,12 +286,28 @@ const makeStyles = (G) =>
       borderBottomWidth: 1,
       borderBottomColor: G.border,
     },
+    titleRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 10,
+      marginBottom: 14,
+    },
+    backBtn: {
+      width: 32,
+      height: 32,
+      borderRadius: 16,
+      backgroundColor: G.bgCard,
+      borderWidth: 1,
+      borderColor: G.border,
+      justifyContent: "center",
+      alignItems: "center",
+    },
+    backIcon: { fontSize: 16, color: G.text, fontWeight: "700" },
     title: {
       fontSize: 24,
       fontWeight: "900",
       color: G.text,
       letterSpacing: -0.5,
-      marginBottom: 14,
     },
     searchBox: {
       flexDirection: "row",

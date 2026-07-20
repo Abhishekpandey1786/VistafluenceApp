@@ -3,6 +3,7 @@ import {
   View, Text, ScrollView, StyleSheet,
   RefreshControl, ActivityIndicator,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import api from '../../api/index';
 
 const C = {
@@ -50,6 +51,7 @@ function Badge({ label, type }) {
 }
 
 export default function AdminDashboardScreen() {
+  const insets = useSafeAreaInsets(); // 👈 NAYA
   const [stats, setStats] = useState(null);
   const [recentUsers, setRecentUsers] = useState([]);
   const [recentCampaigns, setRecentCampaigns] = useState([]);
@@ -58,8 +60,6 @@ export default function AdminDashboardScreen() {
 
   const load = useCallback(async () => {
     try {
-      // ✅ api.js khud AsyncStorage se token leta hai — manual headers ki zarurat nahi
-      // ✅ fetch returns JSON directly — .data nahi, seedha property access karo
       const [statsRes, usersRes, campRes] = await Promise.all([
         api.get('/admin/stats'),
         api.get('/admin/users?limit=4'),
@@ -93,9 +93,12 @@ export default function AdminDashboardScreen() {
   return (
     <ScrollView
       style={styles.container}
+      // 👇 FIXED — bottom me safe area + extra space taaki last card gesture-bar/nav-buttons ke peeche na chhupe
+      contentContainerStyle={{ paddingBottom: insets.bottom + 32 }}
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={C.accent} />}
     >
-      <View style={styles.header}>
+      {/* 👇 FIXED — hardcoded paddingTop: 56 ki jagah safe area top inset use kiya */}
+      <View style={[styles.header, { paddingTop: insets.top + 16 }]}>
         <View>
           <Text style={styles.headerTitle}>Admin Dashboard</Text>
           <Text style={styles.headerSub}>Vistafluence</Text>
@@ -168,7 +171,8 @@ const styles = StyleSheet.create({
   center:    { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: C.bg },
   header: {
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
-    padding: 20, paddingTop: 56,
+    padding: 20,
+    // 👇 paddingTop yahan se hata diya, ab inline style se dynamically aayega
   },
   headerTitle: { fontSize: 22, fontWeight: '600', color: C.text },
   headerSub:   { fontSize: 13, color: C.muted, marginTop: 2 },

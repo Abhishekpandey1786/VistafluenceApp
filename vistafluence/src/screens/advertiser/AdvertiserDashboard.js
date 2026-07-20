@@ -3,6 +3,7 @@ import {
   View, Text, FlatList, ActivityIndicator,
   RefreshControl, Image, TouchableOpacity, StatusBar, Alert,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { api } from "../../api/index";
 import { useTheme } from "../../context/Themecontext";
 
@@ -84,8 +85,6 @@ const CampaignItem = React.memo(({ item, G, onDelete }) => {
               </Text>
             </View>
           </View>
-
-          {/* 👇 Delete button */}
           <TouchableOpacity
             onPress={handleDeletePress}
             style={{
@@ -106,6 +105,7 @@ const CampaignItem = React.memo(({ item, G, onDelete }) => {
 
 export default function AdvertiserDashboard() {
   const { G } = useTheme();
+  const insets = useSafeAreaInsets();
   const [campaigns, setCampaigns] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -147,7 +147,7 @@ export default function AdvertiserDashboard() {
     <View style={{ flex: 1, backgroundColor: G.bg, paddingHorizontal: 20 }}>
       <StatusBar barStyle="light-content" />
 
-      <View style={{ marginTop: 60, marginBottom: 30 }}>
+      <View style={{ marginTop: insets.top + 16, marginBottom: 30 }}>
         <Text style={{ fontSize: 32, fontWeight: "900", color: G.text, marginTop: 5 }}>
           ACTIVE <Text style={{ color: G.gold }}>CAMPAIGNS</Text>
         </Text>
@@ -167,7 +167,7 @@ export default function AdvertiserDashboard() {
           refreshControl={
             <RefreshControl refreshing={loading} onRefresh={loadCampaigns} tintColor={G.gold} />
           }
-          contentContainerStyle={{ paddingBottom: 60 }}
+          contentContainerStyle={{ paddingBottom: insets.bottom + 60 }}
           ListEmptyComponent={
             <Text style={{ color: G.textSub, textAlign: "center", marginTop: 50, letterSpacing: 2 }}>
               NO ACTIVE PROJECTS FOUND
