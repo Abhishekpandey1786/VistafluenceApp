@@ -5,6 +5,7 @@ import {
 } from 'react-native';
 import { api } from '../../api/index';
 import { useTheme } from '../../context/Themecontext';
+import RatingModal from '../../components/RatingModal'; // adjust path to where you saved RatingModal.js
 
 export default function ApplyScreen({ route, navigation }) {
   const { G } = useTheme();
@@ -13,6 +14,7 @@ export default function ApplyScreen({ route, navigation }) {
   const [portfolio, setPortfolio] = useState('');
   const [rate, setRate] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [showRating, setShowRating] = useState(false); // NEW: controls rating modal visibility
 
   const handleApply = async () => {
     if (!pitch) return Alert.alert('Wait!', 'Please write a pitch to impress the brand.');
@@ -28,8 +30,8 @@ export default function ApplyScreen({ route, navigation }) {
       };
       const response = await api.applyToCampaign(campaign._id, payload);
       if (response && response.success) {
-        Alert.alert('Application Sent! 🚀', `Your pitch has been sent to ${campaign?.brandName || 'the Brand Host'}.`);
-        navigation.goBack();
+        // NEW: show rating modal instead of navigating back immediately
+        setShowRating(true);
       } else {
         Alert.alert('Failed', response.message || 'Something went wrong.');
       }
@@ -43,6 +45,16 @@ export default function ApplyScreen({ route, navigation }) {
       }
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  // NEW: called when user submits low rating (1-3 stars) with feedback text
+  const handleFeedbackSubmit = async ({ rating, feedback }) => {
+    try {
+      // OPTIONAL: send this feedback to your backend for tracking
+      await api.submitAppFeedback?.({ rating, feedback });
+    } catch (err) {
+      console.log('Feedback submit failed silently:', err.message);
     }
   };
 
@@ -124,6 +136,16 @@ export default function ApplyScreen({ route, navigation }) {
 
         </View>
       </ScrollView>
+
+      {/* NEW: Rating Modal shown after successful application */}
+      <RatingModal
+        visible={showRating}
+        onClose={() => {
+          setShowRating(false);
+          navigation.goBack();
+        }}
+        onFeedbackSubmit={handleFeedbackSubmit}
+      />
     </View>
   );
 }
