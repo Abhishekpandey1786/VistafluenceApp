@@ -14,7 +14,8 @@ import {
 } from 'react-native';
 import { useAuth } from '../../context/AuthContext';
 
-const T = {  black: '#0A0A0A',
+const T = {
+  black: '#0A0A0A',
   white: '#FFFFFF',
   gold: '#E8C87A',
   surface: '#161616',
@@ -29,6 +30,7 @@ const BACKEND_URL = 'https://vistafluenceapp.onrender.com/api/auth/login';
 export default function LoginScreen({ navigation }) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const { login, loginContext = login } = useAuth();
@@ -116,16 +118,25 @@ export default function LoginScreen({ navigation }) {
 
             <View style={s.inputGroup}>
               <Text style={s.label}>PASSWORD</Text>
-              <TextInput
-                style={s.input}
-                placeholder="••••••••"
-                placeholderTextColor={T.muted}
-                value={password}
-                onChangeText={setPassword}
-                secureTextEntry
-                autoCapitalize="none"
-                editable={!isSubmitting}
-              />
+              <View style={s.passwordWrapper}>
+                <TextInput
+                  style={s.passwordInput}
+                  placeholder="••••••••"
+                  placeholderTextColor={T.muted}
+                  value={password}
+                  onChangeText={setPassword}
+                  secureTextEntry={!showPassword}
+                  autoCapitalize="none"
+                  editable={!isSubmitting}
+                />
+                <TouchableOpacity 
+                  onPress={() => setShowPassword(!showPassword)} 
+                  style={s.eyeBtn}
+                  hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                >
+                  <Text style={s.eyeText}>{showPassword ? 'Hide' : 'Show'}</Text>
+                </TouchableOpacity>
+              </View>
             </View>
 
             <TouchableOpacity style={s.forgotBtn}>
@@ -191,6 +202,28 @@ const s = StyleSheet.create({
     fontSize: 15,
     borderWidth: 1,
     borderColor: T.border,
+  },
+  passwordWrapper: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: T.surfaceAlt,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: T.border,
+  },
+  passwordInput: {
+    flex: 1,
+    padding: 16,
+    color: T.white,
+    fontSize: 15,
+  },
+  eyeBtn: {
+    paddingHorizontal: 16,
+  },
+  eyeText: {
+    color: T.gold,
+    fontSize: 12,
+    fontWeight: '700',
   },
   forgotBtn: { alignSelf: 'flex-end', marginTop: -8 },
   forgotText: { color: T.gold, fontSize: 12, fontWeight: '700' },

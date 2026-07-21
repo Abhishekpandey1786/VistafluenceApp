@@ -1,12 +1,11 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { View, Text, FlatList, TouchableOpacity, StyleSheet, RefreshControl } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
-import { C } from '../../theme/colors';
+import { useTheme } from '../../context/Themecontext';
 import { useAuth } from '../../context/AuthContext';
 import { api } from '../../api/index';
 
 const TYPE_ICONS = { application:'📬', payment:'💰', campaign:'📢', message:'💬', accepted:'✅', admin:'📣' };
-const TYPE_COLORS = { application:C.teal, payment:'#4ADE80', campaign:C.amber, message:C.info, accepted:'#4ADE80', admin:'#A78BFA' };
 
 function timeAgo(d) {
   const s = Math.floor((Date.now() - new Date(d)) / 1000);
@@ -18,6 +17,14 @@ function timeAgo(d) {
 
 export default function NotificationsScreen({ navigation }) {
   const { user } = useAuth();
+  const { G } = useTheme();
+  const styles = getStyles(G);
+
+  // G object me application/campaign ke liye alag-alag rang nahi hain,
+  // isliye jo sabse paas ki (closest) key hai wahi use ki:
+  // amber -> gold, info -> teal
+  const TYPE_COLORS = { application:G.teal, payment:G.green, campaign:G.gold, message:G.teal, accepted:G.green, admin:G.pink };
+
   const [notifs, setNotifs] = useState([]);
   const [refreshing, setRefreshing] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -66,7 +73,7 @@ export default function NotificationsScreen({ navigation }) {
   };
 
   return (
-    <View style={{ flex: 1, backgroundColor: C.bg }}>
+    <View style={{ flex: 1, backgroundColor: G.bg }}>
       <View style={styles.header}>
         <Text style={styles.title}>Notifications</Text>
         <TouchableOpacity onPress={markAll}><Text style={styles.markAll}>Mark all read</Text></TouchableOpacity>
@@ -75,15 +82,15 @@ export default function NotificationsScreen({ navigation }) {
       <FlatList
         data={notifs}
         keyExtractor={i => i._id}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={C.teal} />}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={G.gold} />}
         ListEmptyComponent={
           !loading && (
-            <Text style={{ color: C.textMuted, textAlign:'center', marginTop: 40 }}>No notifications yet</Text>
+            <Text style={{ color: G.textSub, textAlign:'center', marginTop: 40 }}>No notifications yet</Text>
           )
         }
         renderItem={({ item }) => (
           <View style={[styles.notifCard, item.urgent && !item.read && styles.notifUrgent]}>
-            <View style={[styles.iconCircle, { backgroundColor: (TYPE_COLORS[item.type] || C.teal) + '22' }]}>
+            <View style={[styles.iconCircle, { backgroundColor: (TYPE_COLORS[item.type] || G.teal) + '22' }]}>
               <Text style={{ fontSize: 18 }}>{TYPE_ICONS[item.type] || '🔔'}</Text>
             </View>
             <View style={{ flex: 1 }}>
@@ -107,23 +114,24 @@ export default function NotificationsScreen({ navigation }) {
             {item.urgent && !item.read && <View style={styles.urgentDot} />}
           </View>
         )}
-        ItemSeparatorComponent={() => <View style={{ height: 1, backgroundColor: C.border, marginLeft: 72 }} />}
+        ItemSeparatorComponent={() => <View style={{ height: 1, backgroundColor: G.border, marginLeft: 72 }} />}
       />
     </View>
   );
 }
 
-const styles = StyleSheet.create({
-  header: { flexDirection:'row', justifyContent:'space-between', alignItems:'center', paddingHorizontal:20, paddingTop:52, paddingBottom:16, backgroundColor:C.bgDeep, borderBottomWidth:1, borderBottomColor:C.border },
-  title: { fontSize:20, fontWeight:'900', color:C.text },
-  markAll: { fontSize:13, color:C.teal, fontWeight:'600' },
-  notifCard: { flexDirection:'row', alignItems:'flex-start', gap:14, paddingHorizontal:16, paddingVertical:14, backgroundColor:C.bg },
-  notifUrgent: { backgroundColor: C.tealDark + '22' },
+const getStyles = (G) => StyleSheet.create({
+  header: { flexDirection:'row', justifyContent:'space-between', alignItems:'center', paddingHorizontal:20, paddingTop:52, paddingBottom:16, backgroundColor:G.bgCard, borderBottomWidth:1, borderBottomColor:G.border },
+  title: { fontSize:20, fontWeight:'900', color:G.text },
+  markAll: { fontSize:13, color:G.gold, fontWeight:'600' },
+  notifCard: { flexDirection:'row', alignItems:'flex-start', gap:14, paddingHorizontal:16, paddingVertical:14, backgroundColor:G.bg },
+  notifUrgent: { backgroundColor: G.goldFaint },
   iconCircle: { width:42, height:42, borderRadius:21, justifyContent:'center', alignItems:'center' },
   notifTop: { flexDirection:'row', justifyContent:'space-between', marginBottom:4 },
-  notifTitle: { fontSize:13, fontWeight:'700', color:C.text, flex:1 },
-  notifTime: { fontSize:10, color:C.textMuted },
-  notifBody: { fontSize:12, color:C.textSub, lineHeight:18 },
-  viewProfileBtn: { marginTop:10, backgroundColor:C.teal, borderRadius:20, paddingHorizontal:14, paddingVertical:7, alignSelf:'flex-start' },
-  urgentDot: { width:8, height:8, borderRadius:4, backgroundColor:C.teal, marginTop:4 },
+  notifTitle: { fontSize:13, fontWeight:'700', color:G.text, flex:1 },
+  notifTime: { fontSize:10, color:G.textSub },
+  notifBody: { fontSize:12, color:G.textSub, lineHeight:18 },
+  viewProfileBtn: { marginTop:10, backgroundColor:G.gold, borderRadius:20, paddingHorizontal:14, paddingVertical:7, alignSelf:'flex-start' },
+  viewProfileText: { fontSize:12, fontWeight:'700', color:G.bg },
+  urgentDot: { width:8, height:8, borderRadius:4, backgroundColor:G.gold, marginTop:4 },
 });

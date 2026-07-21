@@ -4,7 +4,6 @@ import {
   Animated, Dimensions, StatusBar, useWindowDimensions,
 } from 'react-native';
 
-// ─── Design Tokens ────────────────────────────────────────────────────
 const T = {
   black:      '#0A0A0A',
   white:      '#FFFFFF',
@@ -17,12 +16,10 @@ const T = {
   muted:      'rgba(255,255,255,0.38)',
   sub:        'rgba(255,255,255,0.6)',
 };
-
-// ─── Responsive Hook ──────────────────────────────────────────────────
 function useResponsive() {
   const { width, height } = useWindowDimensions();
-  const isSmall  = width < 360;   // e.g. iPhone SE
-  const isMedium = width < 390;   // e.g. iPhone 13 mini
+  const isSmall  = width < 360;
+  const isMedium = width < 390;
   return {
     w: width,
     h: height,
@@ -34,8 +31,6 @@ function useResponsive() {
     isMedium,
   };
 }
-
-// ─── Avatar Stack ─────────────────────────────────────────────────────
 const AVATARS = [
   { initials: 'AK', color: '#FF6B8A' },
   { initials: 'RV', color: '#7B61FF' },
@@ -78,8 +73,6 @@ const av = StyleSheet.create({
   },
   labelText: { color: T.sub, fontWeight: '600' },
 });
-
-// ─── Live Badge ───────────────────────────────────────────────────────
 function LiveBadge() {
   const pulse = useRef(new Animated.Value(1)).current;
   useEffect(() => {
@@ -120,8 +113,6 @@ const pill = StyleSheet.create({
   },
   text: { fontSize: 10, fontWeight: '800', color: T.gold, letterSpacing: 2 },
 });
-
-// ─── Stat Card ────────────────────────────────────────────────────────
 function StatCard({ val, label, accent }) {
   const { fs } = useResponsive();
   return (
@@ -141,8 +132,6 @@ const sc = StyleSheet.create({
   val:   { fontWeight: '900', letterSpacing: -0.5 },
   label: { color: T.muted, marginTop: 3, fontWeight: '600', letterSpacing: 0.5 },
 });
-
-// ─── Ticker Strip ─────────────────────────────────────────────────────
 const BRANDS = ['Nike ✦', 'Myntra ✦', 'Nykaa ✦', 'Swiggy ✦', 'SUGAR ✦', 'boAt ✦', 'Mamaearth ✦'];
 
 function TickerStrip() {

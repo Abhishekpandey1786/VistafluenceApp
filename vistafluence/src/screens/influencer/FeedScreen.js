@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   View,
   Text,
@@ -12,7 +12,7 @@ import {
   Dimensions,
   ActivityIndicator,
 } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context"; // NEW IMPORT
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAuth } from "../../context/AuthContext";
 import { api } from "../../api/index";
 import { useTheme } from "../../context/Themecontext";
@@ -38,11 +38,11 @@ const FALLBACK_CAMPAIGNS = [
   },
 ];
 
-// UPDATED: BottomNav now uses safe area insets to avoid overlapping with phone's nav buttons
-function BottomNav({ active, navigation }) {
+// ✅ BottomNav ab onScrollToTop bhi accept karta hai — active tab pe dubara tap = scroll to top
+function BottomNav({ active, navigation, onScrollToTop }) {
   const { G } = useTheme();
-  const insets = useSafeAreaInsets(); // NEW: get device safe area (gesture bar / home indicator height)
-  const s = makeStyles(G, insets);   // NEW: pass insets to styles
+  const insets = useSafeAreaInsets();
+  const s = makeStyles(G, insets);
   const tabs = [
     { key: "HomeTab", icon: "🏠", label: "Feed" },
     { key: "CampaignsTab", icon: "📢", label: "Subscription" },
@@ -56,7 +56,13 @@ function BottomNav({ active, navigation }) {
         <TouchableOpacity
           key={t.key}
           style={s.tabItem}
-          onPress={() => navigation.navigate(t.key)}
+          onPress={() => {
+            if (t.key === active && onScrollToTop) {
+              onScrollToTop();
+            } else {
+              navigation.navigate(t.key);
+            }
+          }}
         >
           <Text style={s.tabIcon}>{t.icon}</Text>
           <Text style={[s.tabLabel, active === t.key && { color: G.gold }]}>
@@ -68,20 +74,29 @@ function BottomNav({ active, navigation }) {
   );
 }
 
-export function BottomNavBar({ active, navigation }) {
-  return <BottomNav active={active} navigation={navigation} />;
+export function BottomNavBar({ active, navigation, onScrollToTop }) {
+  return (
+    <BottomNav active={active} navigation={navigation} onScrollToTop={onScrollToTop} />
+  );
 }
 
 export default function FeedScreen({ navigation }) {
   const { G } = useTheme();
-  const insets = useSafeAreaInsets(); // NEW: for header top spacing too
-  const s = makeStyles(G, insets);   // NEW
+  const insets = useSafeAreaInsets();
+  const s = makeStyles(G, insets);
   const { user } = useAuth();
   const [search, setSearch] = useState("");
   const [refreshing, setRefreshing] = useState(false);
   const [campaigns, setCampaigns] = useState([]);
   const [loading, setLoading] = useState(true);
   const [commentInputs, setCommentInputs] = useState({});
+
+  // ✅ NEW: ScrollView ref + scrollToTop function (Instagram jaisa feel)
+  const scrollRef = useRef(null);
+  const scrollToTop = () => {
+    scrollRef.current?.scrollTo({ y: 0, animated: true });
+  };
+
   const fetchLiveFeed = async () => {
     try {
       const data = await api.getFeed(1);
@@ -192,9 +207,12 @@ export default function FeedScreen({ navigation }) {
     <View style={s.container}>
       <StatusBar barStyle="light-content" backgroundColor={G.black} />
       <View style={s.header}>
-        <Text style={s.logo}>
-          VIST<Text style={{ color: G.gold }}>FLUENCE</Text>
-        </Text>
+        {/* ✅ Logo pe tap = scroll to top (Instagram jaisa) */}
+        <TouchableOpacity onPress={scrollToTop} activeOpacity={0.7}>
+          <Text style={s.logo}>
+            VIST<Text style={{ color: G.gold }}>FLUENCE</Text>
+          </Text>
+        </TouchableOpacity>
         <TouchableOpacity
           style={s.notifBtn}
           onPress={() => navigation.navigate("Notifications")}
@@ -217,6 +235,7 @@ export default function FeedScreen({ navigation }) {
       </View>
 
       <ScrollView
+        ref={scrollRef}
         showsVerticalScrollIndicator={false}
         refreshControl={
           <RefreshControl
@@ -375,16 +394,14 @@ export default function FeedScreen({ navigation }) {
             );
           })
         )}
-        {/* UPDATED: spacer height now accounts for bottom nav + safe area, prevents last post being hidden behind nav */}
         <View style={{ height: 100 + insets.bottom }} />
       </ScrollView>
 
-      <BottomNavBar active="HomeTab" navigation={navigation} />
+      <BottomNavBar active="HomeTab" navigation={navigation} onScrollToTop={scrollToTop} />
     </View>
   );
 }
 
-// UPDATED: makeStyles now accepts insets as second param
 const makeStyles = (G, insets = { top: 0, bottom: 0 }) =>
   StyleSheet.create({
     container: {
@@ -396,7 +413,6 @@ const makeStyles = (G, insets = { top: 0, bottom: 0 }) =>
       justifyContent: "space-between",
       alignItems: "center",
       paddingHorizontal: 16,
-      // UPDATED: was hardcoded paddingTop: 50 — now respects notch/status bar height dynamically
       paddingTop: insets.top + 10,
       paddingBottom: 15,
     },

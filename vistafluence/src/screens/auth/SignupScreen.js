@@ -27,14 +27,12 @@ export default function SignupScreen({ navigation }) {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
 
   const handleNext = () => {
-    // 1. Basic Validation check karein taaki empty data aage na jaye
     if (!name.trim() || !email.trim() || !password) {
       return Alert.alert('Missing Info', 'Please fill all fields before proceeding.');
     }
-
-    // 2. Simple Client side regex email verification
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email.trim())) {
       return Alert.alert('Invalid Email', 'Please enter a valid email address.');
@@ -43,8 +41,6 @@ export default function SignupScreen({ navigation }) {
     if (password.length < 6) {
       return Alert.alert('Weak Password', 'Password must be at least 6 characters long.');
     }
-
-    // Sab sahi hone par parameters ko payload bana kar next screen par forward karein
     navigation.navigate('RoleSelect', { 
       name: name.trim(), 
       email: email.trim().toLowerCase(), 
@@ -107,16 +103,25 @@ export default function SignupScreen({ navigation }) {
 
             <View style={s.inputGroup}>
               <Text style={s.label}>PASSWORD</Text>
-              <TextInput 
-                style={s.input} 
-                placeholder="Create a strong password" 
-                placeholderTextColor={T.muted}
-                value={password} 
-                onChangeText={setPassword} 
-                secureTextEntry 
-                autoCapitalize="none"
-                autoCorrect={false}
-              />
+              <View style={s.passwordWrapper}>
+                <TextInput 
+                  style={s.passwordInput} 
+                  placeholder="Create a strong password" 
+                  placeholderTextColor={T.muted}
+                  value={password} 
+                  onChangeText={setPassword} 
+                  secureTextEntry={!showPassword}
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                />
+                <TouchableOpacity 
+                  onPress={() => setShowPassword(!showPassword)} 
+                  style={s.eyeBtn}
+                  hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                >
+                  <Text style={s.eyeText}>{showPassword ? 'Hide' : 'Show'}</Text>
+                </TouchableOpacity>
+              </View>
             </View>
 
             <TouchableOpacity style={s.mainBtn} onPress={handleNext} activeOpacity={0.8}>
@@ -158,6 +163,28 @@ const s = StyleSheet.create({
     fontSize: 15,
     borderWidth: 1,
     borderColor: T.border,
+  },
+  passwordWrapper: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: T.surfaceAlt,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: T.border,
+  },
+  passwordInput: {
+    flex: 1,
+    padding: 16,
+    color: T.white,
+    fontSize: 15,
+  },
+  eyeBtn: {
+    paddingHorizontal: 16,
+  },
+  eyeText: {
+    color: T.pink,
+    fontSize: 12,
+    fontWeight: '700',
   },
   mainBtn: {
     backgroundColor: T.white,
