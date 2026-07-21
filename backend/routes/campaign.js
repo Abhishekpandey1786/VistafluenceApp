@@ -118,38 +118,45 @@ router.put('/application/:appId', protect, authorize('brand'), async (req, res) 
       }
     }
 
-    if (!incomingStatus) {
-      return res.status(400).json({ success: false, message: 'Status field is missing or invalid.' });
+    incomingStatus = (incomingStatus || '').toLowerCase();
+    const allowedStatuses = ['pending', 'accepted', 'rejected'];
+
+    if (!allowedStatuses.includes(incomingStatus)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Status must be pending, accepted or rejected.'
+      });
     }
 
+    // ✅ ownership check (brand: req.user._id) + populate campaign title
     const app = await Application.findOneAndUpdate(
-      { _id: req.params.appId },
-      { status: incomingStatus.toLowerCase() },
-      { new: true }
-    );
-    
-    if (!app) return res.status(404).json({ success: false, message: 'Application wrapper entity not found.' });
+      { _id: req.params.appId, brand: req.user._id },
+      { status: incomingStatus },
+      { new: true, runValidators: true }
+    ).populate('campaign', 'title');
 
-      // notify influencer about decision
+    if (!app) {
+      return res.status(404).json({
+        success: false,
+        message: 'Application not found or unauthorized.'
+      });
+    }
+
+    // notify influencer about decision
     try {
       await notify(app.influencer, 'influencer', {
         type: 'application_status',
-        urgent: incomingStatus.toLowerCase() === 'accepted',
+        urgent: incomingStatus === 'accepted',
         title: `Application ${incomingStatus}`,
-        body: `Your application for "${app.campaign?.title || 'campaign'}" was ${incomingStatus}.`,
-        meta: { applicationId: app._id, campaignId: app.campaign?._id, status: app.status },
+        body: `Your application for "${app.campaign?.title || 'the campaign'}" was ${incomingStatus}.`,
+        meta: {
+          applicationId: app._id,
+          campaignId: app.campaign?._id,
+          status: app.status
+        },
       });
-    } catch (e) { console.log('notify err', e.message); }
-
-
-    const io = req.app.get('io');
-    if (io) {
-      io.emit('application_status_updated', {
-        applicationId: app._id,
-        status: app.status,
-        influencerId: app.influencer,
-        brandId: app.brand
-      });
+    } catch (e) {
+      console.log('notify err', e.message);
     }
 
     res.json({ success: true, application: app });
@@ -157,7 +164,6 @@ router.put('/application/:appId', protect, authorize('brand'), async (req, res) 
     res.status(500).json({ success: false, message: err.message });
   }
 });
-
 router.post('/', protect, authorize('brand'), upload.single('coverArt'), async (req, res) => {
   try {
     let coverArtUrl = '';
