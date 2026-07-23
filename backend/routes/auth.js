@@ -2,8 +2,10 @@ const express = require('express');
 const router = express.Router();
 const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
-const nodemailer = require('nodemailer');
+const { Resend } = require('resend');
 const User = require('../models/User');
+
+const resend = new Resend(process.env.RESEND_API_KEY);
 const { protect } = require('../middleware/auth');
 
 const generateToken = (id) =>
@@ -75,16 +77,11 @@ router.post('/forgot-password', async (req, res) => {
     user.resetPasswordExpires = Date.now() + 10 * 60 * 1000; // valid for 10 minutes
     await user.save({ validateBeforeSave: false });
 
-    const transporter = nodemailer.createTransport({
-      service: 'gmail',
-      auth: {
-        user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASS,
-      },
-    });
-
-    await transporter.sendMail({
-      from: `"Vistafluence" <${process.env.EMAIL_USER}>`,
+    const { error: sendError } = await resend.emails.send({
+      // Until you verify your own domain on resend.com, you must use this
+      // "onboarding" sender. Once you verify a domain, switch this to
+      // something like "Vistafluence <noreply@yourdomain.com>".
+      from: 'Vistafluence <onboarding@resend.dev>',
       to: user.email,
       subject: 'Your password reset code',
       html: `
@@ -96,6 +93,11 @@ router.post('/forgot-password', async (req, res) => {
         </div>
       `,
     });
+
+    if (sendError) {
+      console.error('Resend send error:', sendError);
+      return res.status(500).json({ success: false, message: 'Could not send OTP. Please try again.' });
+    }
 
     res.json({ success: true, message: 'If that email is registered, an OTP has been sent.' });
   } catch (err) {
