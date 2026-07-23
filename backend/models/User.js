@@ -64,11 +64,10 @@ const userSchema = new mongoose.Schema(
     academyAccess: { type: Boolean, default: false },
     academyAccessExpiresAt: { type: Date, default: null },
     academyPasswordIssuedAt: { type: Date, default: null },
-    resetPasswordToken: { type: String, default: null },
-    resetPasswordExpire: { type: Date, default: null },
   },
   { timestamps: true },
 );
+
 userSchema.pre("save", async function () {
   if (!this.isModified("password")) {
     return;
