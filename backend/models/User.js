@@ -36,24 +36,15 @@ const userSchema = new mongoose.Schema(
       default: "",
     },
     subscription: {
-      // "free" until the first successful payment activates a real plan.
-      // After that, this becomes "Basic" | "Standard" | "Advanced" | "Premium"
-      // (see planCodes/planNames in routes/instamojo.js).
       plan: {
         type: String,
         default: "free",
       },
-      // Whether the plan is currently usable. Only "Active" subscriptions
-      // are allowed to apply to campaigns — this is what routes/campaign.js
-      // checks before letting someone apply.
       status: {
         type: String,
         enum: ["Active", "Expired", "None"],
         default: "None",
       },
-      // How many campaign applications this plan allows per month.
-      // Set from utils/planLimits.js -> getMaxApplications() when a
-      // subscription is activated (routes/instamojo.js).
       maxApplications: {
         type: Number,
         default: 0,
@@ -67,23 +58,17 @@ const userSchema = new mongoose.Schema(
         default: Date.now,
       },
       startDate: Date,
-      // Use this field consistently everywhere (frontend reads
-      // subscription.expiryDate) instead of the old "endDate" name.
       expiryDate: Date,
     },
     academyPassword: { type: String, default: null },
     academyAccess: { type: Boolean, default: false },
     academyAccessExpiresAt: { type: Date, default: null },
     academyPasswordIssuedAt: { type: Date, default: null },
+    resetPasswordOTP: { type: String, default: null },
+    resetPasswordExpires: { type: Date, default: null },
   },
   { timestamps: true },
 );
-
-// No `next` parameter at all here on purpose. Mongoose has supported
-// plain async pre-hooks (no callback needed) since v5 — you just return
-// the promise and Mongoose awaits it. Mixing an async function with a
-// next() callback is what caused issues before; this version sidesteps
-// that entirely.
 userSchema.pre("save", async function () {
   if (!this.isModified("password")) {
     return;
