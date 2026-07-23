@@ -64,8 +64,6 @@ const userSchema = new mongoose.Schema(
     academyAccess: { type: Boolean, default: false },
     academyAccessExpiresAt: { type: Date, default: null },
     academyPasswordIssuedAt: { type: Date, default: null },
-    resetPasswordOTP: { type: String, default: null },
-    resetPasswordExpires: { type: Date, default: null },
   },
   { timestamps: true },
 );

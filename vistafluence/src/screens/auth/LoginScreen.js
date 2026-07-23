@@ -10,9 +10,7 @@ import {
   ActivityIndicator,
   KeyboardAvoidingView,
   ScrollView,
-  Platform,
-  Modal,
-  Pressable
+  Platform
 } from 'react-native';
 import { useAuth } from '../../context/AuthContext';
 
@@ -27,10 +25,7 @@ const T = {
   sub: 'rgba(255,255,255,0.6)',
   teal: '#00C9A7',
 };
-
-const LOGIN_URL = 'https://vistafluenceapp.onrender.com/api/auth/login';
-const FORGOT_URL = 'https://vistafluenceapp.onrender.com/api/auth/forgot-password';
-const RESET_URL = 'https://vistafluenceapp.onrender.com/api/auth/reset-password';
+const BACKEND_URL = 'https://vistafluenceapp.onrender.com/api/auth/login'; 
 
 export default function LoginScreen({ navigation }) {
   const [email, setEmail] = useState('');
@@ -40,16 +35,6 @@ export default function LoginScreen({ navigation }) {
 
   const { login, loginContext = login } = useAuth();
 
-  // --- Forgot password modal state ---
-  const [modalVisible, setModalVisible] = useState(false);
-  const [step, setStep] = useState('request'); // 'request' -> 'reset'
-  const [resetEmail, setResetEmail] = useState('');
-  const [otp, setOtp] = useState('');
-  const [newPassword, setNewPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
-  const [showNewPassword, setShowNewPassword] = useState(false);
-  const [isProcessing, setIsProcessing] = useState(false);
-
   const handleLogin = async () => {
     if (!email || !password) {
       return Alert.alert('Error', 'Please fill all fields');
@@ -58,7 +43,7 @@ export default function LoginScreen({ navigation }) {
     setIsSubmitting(true);
 
     try {
-      const response = await fetch(LOGIN_URL, {
+      const response = await fetch(BACKEND_URL, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -87,87 +72,6 @@ export default function LoginScreen({ navigation }) {
       );
     } finally {
       setIsSubmitting(false);
-    }
-  };
-
-  const openForgotModal = () => {
-    setResetEmail(email); // prefill with whatever they already typed on the login form
-    setStep('request');
-    setOtp('');
-    setNewPassword('');
-    setConfirmPassword('');
-    setModalVisible(true);
-  };
-
-  const closeModal = () => {
-    if (isProcessing) return;
-    setModalVisible(false);
-  };
-
-  const handleSendOtp = async () => {
-    if (!resetEmail.trim()) {
-      return Alert.alert('Error', 'Please enter your email address');
-    }
-    setIsProcessing(true);
-    try {
-      const response = await fetch(FORGOT_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
-        body: JSON.stringify({ email: resetEmail.trim() })
-      });
-      const data = await response.json();
-
-      if (response.status === 200 && data.success) {
-        Alert.alert('Check your email', data.message || 'An OTP has been sent to your email.');
-        setStep('reset');
-      } else {
-        Alert.alert('Error', data.message || 'Something went wrong. Please try again.');
-      }
-    } catch (error) {
-      console.error('Fetch Error:', error);
-      Alert.alert('Connection Error', 'Backend server tak request nahi pahonchi.');
-    } finally {
-      setIsProcessing(false);
-    }
-  };
-
-  const handleResetPassword = async () => {
-    if (!otp || !newPassword || !confirmPassword) {
-      return Alert.alert('Error', 'Please fill all fields');
-    }
-    if (newPassword.length < 6) {
-      return Alert.alert('Error', 'Password must be at least 6 characters');
-    }
-    if (newPassword !== confirmPassword) {
-      return Alert.alert('Error', 'Passwords do not match');
-    }
-
-    setIsProcessing(true);
-    try {
-      const response = await fetch(RESET_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
-        body: JSON.stringify({
-          email: resetEmail.trim(),
-          otp: otp.trim(),
-          newPassword
-        })
-      });
-      const data = await response.json();
-
-      if (response.status === 200 && data.success) {
-        setModalVisible(false);
-        Alert.alert('Success', data.message || 'Password reset successful. Please log in.');
-        setEmail(resetEmail.trim());
-        setPassword('');
-      } else {
-        Alert.alert('Error', data.message || 'Invalid or expired OTP');
-      }
-    } catch (error) {
-      console.error('Fetch Error:', error);
-      Alert.alert('Connection Error', 'Backend server tak request nahi pahonchi.');
-    } finally {
-      setIsProcessing(false);
     }
   };
 
@@ -235,7 +139,7 @@ export default function LoginScreen({ navigation }) {
               </View>
             </View>
 
-            <TouchableOpacity style={s.forgotBtn} onPress={openForgotModal}>
+            <TouchableOpacity style={s.forgotBtn}>
               <Text style={s.forgotText}>Forgot password?</Text>
             </TouchableOpacity>
 
@@ -273,139 +177,6 @@ export default function LoginScreen({ navigation }) {
           </TouchableOpacity>
         </ScrollView>
       </KeyboardAvoidingView>
-
-      {/* --- Forgot / Reset password modal --- */}
-      <Modal
-        visible={modalVisible}
-        transparent
-        animationType="fade"
-        onRequestClose={closeModal}
-      >
-        <KeyboardAvoidingView
-          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-          style={s.modalOverlay}
-        >
-          <Pressable style={StyleSheet.absoluteFill} onPress={closeModal} />
-
-          <View style={s.modalCard}>
-            <TouchableOpacity onPress={closeModal} style={s.modalCloseBtn} hitSlop={{top:10,bottom:10,left:10,right:10}}>
-              <Text style={s.modalCloseText}>✕</Text>
-            </TouchableOpacity>
-
-            {step === 'request' ? (
-              <>
-                <Text style={s.modalTitle}>Forgot <Text style={{color: T.gold}}>Password?</Text></Text>
-                <Text style={s.modalSubText}>
-                  Enter your email and we'll send you a code to reset your password.
-                </Text>
-
-                <View style={s.inputGroup}>
-                  <Text style={s.label}>EMAIL ADDRESS</Text>
-                  <TextInput
-                    style={s.input}
-                    placeholder="name@example.com"
-                    placeholderTextColor={T.muted}
-                    value={resetEmail}
-                    onChangeText={setResetEmail}
-                    keyboardType="email-address"
-                    autoCapitalize="none"
-                    autoCorrect={false}
-                    editable={!isProcessing}
-                  />
-                </View>
-
-                <TouchableOpacity
-                  style={s.mainBtn}
-                  onPress={handleSendOtp}
-                  activeOpacity={0.8}
-                  disabled={isProcessing}
-                >
-                  {isProcessing ? (
-                    <ActivityIndicator color={T.black} />
-                  ) : (
-                    <Text style={s.mainBtnText}>Send Reset Code —</Text>
-                  )}
-                </TouchableOpacity>
-              </>
-            ) : (
-              <>
-                <Text style={s.modalTitle}>Enter <Text style={{color: T.gold}}>Code</Text></Text>
-                <Text style={s.modalSubText}>
-                  We sent a code to {resetEmail}. Enter it below with your new password.
-                </Text>
-
-                <View style={s.inputGroup}>
-                  <Text style={s.label}>OTP CODE</Text>
-                  <TextInput
-                    style={s.input}
-                    placeholder="6-digit code"
-                    placeholderTextColor={T.muted}
-                    value={otp}
-                    onChangeText={setOtp}
-                    keyboardType="number-pad"
-                    maxLength={6}
-                    editable={!isProcessing}
-                  />
-                </View>
-
-                <View style={s.inputGroup}>
-                  <Text style={s.label}>NEW PASSWORD</Text>
-                  <View style={s.passwordWrapper}>
-                    <TextInput
-                      style={s.passwordInput}
-                      placeholder="••••••••"
-                      placeholderTextColor={T.muted}
-                      value={newPassword}
-                      onChangeText={setNewPassword}
-                      secureTextEntry={!showNewPassword}
-                      autoCapitalize="none"
-                      editable={!isProcessing}
-                    />
-                    <TouchableOpacity
-                      onPress={() => setShowNewPassword(!showNewPassword)}
-                      style={s.eyeBtn}
-                      hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-                    >
-                      <Text style={s.eyeText}>{showNewPassword ? 'Hide' : 'Show'}</Text>
-                    </TouchableOpacity>
-                  </View>
-                </View>
-
-                <View style={s.inputGroup}>
-                  <Text style={s.label}>CONFIRM NEW PASSWORD</Text>
-                  <TextInput
-                    style={s.input}
-                    placeholder="••••••••"
-                    placeholderTextColor={T.muted}
-                    value={confirmPassword}
-                    onChangeText={setConfirmPassword}
-                    secureTextEntry={!showNewPassword}
-                    autoCapitalize="none"
-                    editable={!isProcessing}
-                  />
-                </View>
-
-                <TouchableOpacity
-                  style={s.mainBtn}
-                  onPress={handleResetPassword}
-                  activeOpacity={0.8}
-                  disabled={isProcessing}
-                >
-                  {isProcessing ? (
-                    <ActivityIndicator color={T.black} />
-                  ) : (
-                    <Text style={s.mainBtnText}>Reset Password —</Text>
-                  )}
-                </TouchableOpacity>
-
-                <TouchableOpacity onPress={() => setStep('request')} disabled={isProcessing} style={{marginTop: 14, alignItems: 'center'}}>
-                  <Text style={s.forgotText}>Didn't get a code? Resend</Text>
-                </TouchableOpacity>
-              </>
-            )}
-          </View>
-        </KeyboardAvoidingView>
-      </Modal>
     </View>
   );
 }
@@ -421,7 +192,7 @@ const s = StyleSheet.create({
   title: { fontSize: 32, fontWeight: '900', color: T.white, letterSpacing: -1 },
   subText: { fontSize: 14, color: T.sub, marginTop: 8 },
   form: { gap: 20 },
-  inputGroup: { gap: 8, marginBottom: 4 },
+  inputGroup: { gap: 8 },
   label: { fontSize: 10, fontWeight: '800', color: T.muted, letterSpacing: 1 },
   input: {
     backgroundColor: T.surfaceAlt,
@@ -485,32 +256,4 @@ const s = StyleSheet.create({
   footer: { marginTop: 'auto', alignItems: 'center', paddingVertical: 20 },
   footerText: { color: T.sub, fontSize: 14 },
   linkText: { color: T.white, fontWeight: '800' },
-
-  // --- modal styles ---
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.75)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 24,
-  },
-  modalCard: {
-    width: '100%',
-    maxWidth: 420,
-    backgroundColor: T.surface,
-    borderRadius: 24,
-    padding: 24,
-    borderWidth: 1,
-    borderColor: T.border,
-    gap: 16,
-  },
-  modalCloseBtn: {
-    position: 'absolute',
-    top: 16,
-    right: 16,
-    zIndex: 1,
-  },
-  modalCloseText: { color: T.sub, fontSize: 18, fontWeight: '700' },
-  modalTitle: { fontSize: 24, fontWeight: '900', color: T.white, letterSpacing: -0.5, marginTop: 8 },
-  modalSubText: { fontSize: 13, color: T.sub, marginBottom: 4, lineHeight: 19 },
 });
